@@ -1,5 +1,9 @@
+#include <cstddef>
+#include <string>
+#include <list>
+#include <map>
 
-template <typename Key_type, typename Value_type>
+template <class Key_type = std::string, class Value_type = std::string>
 class lru {
 public:
 
@@ -12,10 +16,10 @@ public:
   bool remove (const Key_type & key);
 
 private:
-  size_t calc_size(const Key_type & key, const Value_type &value);
+  typedef std::size_t Key_store_type;
+  typedef std::list<Key_store_type>::iterator list_iter;
 
-  typename size_t Key_store_type;
-  typename std::list<Key_store_type>::iterator list_iter;
+
   std::map<Key_store_type, std::pair<Value_type, list_iter> > storage;
   std::list<Key_store_type> sorted_keys;
 
@@ -23,6 +27,10 @@ private:
   const size_t map_node_size;
   const size_t list_node_size;
   size_t size = 0;
+
+  size_t calc_size(const Key_type & key, const Value_type &value);
+  inline Key_store_type calc_hash(const Key_type &key) {return std::hash<Key_type>(key); };
+  inline Key_store_type calc_elem_size (Key_store_type hash) { auto it = storage.find(hash); if (it == storage.end()) return 0; return 2222; };
 };
 
 template <typename Type>
@@ -38,7 +46,7 @@ size_t calc_size<std::string>(const std::string & key) {
 
 
 template <typename Key_type, typename Value_type>
-lru::lru(size_t limit_) :
+lru<Key_type, Value_type>::lru(size_t limit_) :
   map_node_size(sizeof(void*) * 3),
   list_node_size(sizeof(void*) * 3),
   limit(limit_) {
@@ -46,17 +54,18 @@ lru::lru(size_t limit_) :
 }
 
 template <typename Key_type, typename Value_type>
-bool lru::insert(const Key_type & key, const Value_type &value) {
+bool lru<Key_type, Value_type>::insert(const Key_type & key, const Value_type &value) {
 
-Key_store_type hash = std::: hash(key);
+  auto hash = calc_hash(key);
   auto it = storage.find(hash);
   size_t current_size = 0;
   if (it != storage.end()) {
     current_size = sizeof(it->first) + sizeof(it->second.first) + calc_size(it->second.second) + map_node_size + list_node_size + sizeof(Key_store_type);
   }
 
-  size_t want_size = calc_size(key) + calc_size(value) + map_node_size + ... ;
+  size_t want_size = calc_size(key) + calc_size(value) + map_node_size; //  + ... ;
 
+  //need clean cache?
   if (current_size < want_size && (size - current_size) + want_size > limit) {
     //clean
     for (auto sit = sorted_keys.rbegin(); sit != sorted_keys.rend(); sit = sorted_keys.rbegin())  {
@@ -66,7 +75,7 @@ Key_store_type hash = std::: hash(key);
       }
       size -= calc_elem_size( sorted_keys.rbegin() );
       storage.erase( *sit );
-      sorted_keys.erase(sit);
+      sorted_keys.erase(sit.base());
       if ((size - current_size) + want_size < limit) {
 
       }
@@ -92,7 +101,7 @@ Key_store_type hash = std::: hash(key);
 
 
 template <typename Key_type, typename Value_type>
-bool lru::get (const Key_type & key, Value_type ** to) const {
+bool lru<Key_type, Value_type>::get (const Key_type & key, Value_type ** to) const {
   auto it = storage.find(key);
   if (it != storage.end()) {
     if (!to)
@@ -102,10 +111,9 @@ bool lru::get (const Key_type & key, Value_type ** to) const {
   }
   return false;
 }
-}
 
 template <typename Key_type, typename Value_type>
-bool lru::remove (const Key_type & key) {
-  return storage.erase(key);
+bool lru<Key_type, Value_type>::remove (const Key_type & key) {
+  return storage.erase(calc_hash(key));
 }
 
