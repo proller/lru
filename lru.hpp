@@ -3,6 +3,16 @@
 #include <list>
 #include <map>
 
+template <typename Type>
+size_t calc_size(const Type & key) {
+  return sizeof(key);
+}
+
+template <>
+size_t calc_size<std::string>(const std::string & key) {
+  return sizeof(key) + key.capacity();
+}
+
 template <class Key_type = std::string, class Value_type = std::string>
 class lru {
 public:
@@ -16,9 +26,8 @@ public:
   bool remove (const Key_type & key);
 
 private:
-  typedef std::size_t Key_store_type;
+  typedef size_t Key_store_type;
   typedef std::list<Key_store_type>::iterator list_iter;
-
 
   std::map<Key_store_type, std::pair<Value_type, list_iter> > storage;
   std::list<Key_store_type> sorted_keys;
@@ -28,20 +37,27 @@ private:
   const size_t list_node_size;
   size_t size = 0;
 
-  size_t calc_size(const Key_type & key, const Value_type &value);
-  inline Key_store_type calc_hash(const Key_type &key) {return std::hash<Key_type>(key); };
-  inline Key_store_type calc_elem_size (Key_store_type hash) { auto it = storage.find(hash); if (it == storage.end()) return 0; return 2222; };
+  inline size_t calc_size(const Key_type & key, const Value_type &value) const {
+    return sizeof(Key_store_type) + calc_size(value) + map_node_size + list_node_size;
+  };
+
+  inline size_t calc_stored_size(const auto & it) const {
+    return sizeof(it->first) + sizeof(it->second.first) + calc_size(it->second.second) + map_node_size + list_node_size + sizeof(Key_store_type);
+  };
+
+  inline Key_store_type calc_hash(const Key_type &key) const {
+    return std::hash<Key_type>(key);
+  };
+
+  inline Key_store_type calc_elem_size(Key_store_type hash) const {
+    auto it = storage.find(hash);
+    if (it == storage.end())
+      return 0;
+    return calc_stored_size(it);
+  };
+
 };
 
-template <typename Type>
-size_t calc_size(const Type & key) {
-  return sizeof(key);
-}
-
-template <>
-size_t calc_size<std::string>(const std::string & key) {
-  return sizeof(key) + key.capacity();
-}
 
 
 
@@ -60,10 +76,10 @@ bool lru<Key_type, Value_type>::insert(const Key_type & key, const Value_type &v
   auto it = storage.find(hash);
   size_t current_size = 0;
   if (it != storage.end()) {
-    current_size = sizeof(it->first) + sizeof(it->second.first) + calc_size(it->second.second) + map_node_size + list_node_size + sizeof(Key_store_type);
+    current_size = calc_stored_size(it);
   }
 
-  size_t want_size = calc_size(key) + calc_size(value) + map_node_size; //  + ... ;
+  size_t want_size = calc_size(key, value);
 
   //need clean cache?
   if (current_size < want_size && (size - current_size) + want_size > limit) {
@@ -71,10 +87,11 @@ bool lru<Key_type, Value_type>::insert(const Key_type & key, const Value_type &v
     for (auto sit = sorted_keys.rbegin(); sit != sorted_keys.rend(); sit = sorted_keys.rbegin())  {
       // cur check
       if (hash == *sit) {
-        // dont!
+        // dont! TODO
       }
-      size -= calc_elem_size( sorted_keys.rbegin() );
-      storage.erase( *sit );
+      auto storage_it = storage.find(*sit);
+      size -= calc_stored_size( storage_it );
+      storage.erase( storage_it );
       sorted_keys.erase(sit.base());
       if ((size - current_size) + want_size < limit) {
 
@@ -94,7 +111,7 @@ bool lru<Key_type, Value_type>::insert(const Key_type & key, const Value_type &v
     it = pr.second; //?
   }
   //size += calc_size(it->first) + calc_size(it->second) + map_node_size;
-  auto new_size = sizeof(it->first) + sizeof(it->second.first) + calc_size(it->second.second) + map_node_size + list_node_size + sizeof(Key_store_type);
+  auto new_size = calc_stored_size(it);
   size += new_size;
 }
 
@@ -102,11 +119,16 @@ bool lru<Key_type, Value_type>::insert(const Key_type & key, const Value_type &v
 
 template <typename Key_type, typename Value_type>
 bool lru<Key_type, Value_type>::get (const Key_type & key, Value_type ** to) const {
-  auto it = storage.find(key);
+  auto hash = calc_hash(key);
+  auto it = storage.find(hash);
   if (it != storage.end()) {
     if (!to)
       return false;
-    *to = &it->second;
+
+    sorted_keys.erase(it->second.second);
+    sorted_keys.emplace_front(hash);
+
+    *to = &it->second.first;
     return true;
   }
   return false;
