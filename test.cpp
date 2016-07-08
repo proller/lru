@@ -12,9 +12,6 @@ int main () {
 
   lru<> l1(10000);
 
-  std::string key1("a");
-  std::string val1("b");
-  l1.insert(key1, val1);
 
   lru<int, int> l_int(20000);
   int i1 = 1, i2 = 2;
@@ -29,5 +26,14 @@ int main () {
   }
 
   lru<double> l_double(30000);
+
+  std::string key1("a");
+  std::string val1("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+  l1.insert(key1, val1);
+
+
+  key1="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  val1="b";
+  l1.insert(key1, val1);
 
 }
