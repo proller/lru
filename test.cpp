@@ -11,9 +11,17 @@ int main () {
 
   lru<> l1(10000);
 
-  l1.insert("a", "b");
+  std::string key1("a");
+  std::string val1("b");
+  l1.insert(key1, val1);
 
-  lru<int> l_int(20000);
+  lru<int, int> l_int(20000);
+  int i1 = 1, i2 =2;
+  l_int.insert(i1,i2);
+  int * to = nullptr;
+  l_int.get(i1, &to);
+  l_int.remove(i1);
+
 
   lru<double> l_double(30000);
 
