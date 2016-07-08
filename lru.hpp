@@ -3,6 +3,13 @@
 #include <list>
 #include <map>
 
+#if defined(LRU_DEBUG)
+#include <iostream>
+#define LRU_PRINT(a) std::cout << a;
+#else
+#define LRU_PRINT(a) ;
+#endif
+
 template <typename Type>
 size_t calc_size(const Type & key) {
   return sizeof(key);
@@ -13,22 +20,109 @@ size_t calc_size<std::string>(const std::string & key) {
   return sizeof(key) + key.capacity();
 }
 
-template <class Key_type = std::string, class Value_type = std::string>
+template <class Key_type = std::string, class Value_type = std::string, class hash_func = std::hash<Key_type>>
 class lru {
 public:
 
-  lru(size_t limit_);
+  lru(size_t limit_) :
+    map_node_size(sizeof(void*) * 3),
+    list_node_size(sizeof(void*) * 3),
+    limit(limit_) {
+    size += sizeof(*this);
 
-  bool insert(Key_type & key, Value_type &value);
+    LRU_PRINT("initial size=" << size << "\n");
+  }
 
-  bool get (Key_type & key, Value_type ** to);
 
-  bool remove (Key_type & key);
+  bool insert(Key_type & key, Value_type &value) {
+
+    auto hash = calc_hash(key);
+    auto it = storage.find(hash);
+    size_t current_size = 0;
+    if (it != storage.end()) {
+      current_size = calc_stored_size(it);
+    }
+
+    size_t want_size = calc_size_pair(key, value);
+
+    //need clean cache?
+    if (current_size < want_size && (size - current_size) + want_size > limit) {
+      //clean
+      for (auto sit = sorted_keys.rbegin(); sit != sorted_keys.rend(); ++sit)  {
+        if (hash == *sit) {
+          continue;
+        }
+        auto storage_it = storage.find(*sit);
+        size -= calc_stored_size( storage_it );
+        storage.erase( storage_it );
+        sorted_keys.erase(storage_it->second.second);
+        LRU_PRINT("cleaning " << calc_stored_size( storage_it ) << " want_size=" << want_size << " size=" << size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << "\n");
+
+        if ((size - current_size) + want_size < limit) {
+          break;
+        }
+      }
+    }
+
+    if (current_size) {
+      it = storage.find(hash);
+      sorted_keys.erase(it->second.second);
+      sorted_keys.emplace_front(hash);
+      //storage[hash] = std::make_pair(value, sorted_keys.begin());
+      //del!!
+      storage.erase( it );
+      auto pr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
+      size -= current_size;
+    } else {
+      sorted_keys.emplace_front(hash);
+      auto pr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
+      it = pr.first; //?
+    }
+    //size += calc_size(it->first) + calc_size(it->second) + map_node_size;
+    auto new_size = calc_stored_size(it);
+    size += new_size;
+
+    LRU_PRINT("inserted new_size=" << new_size << " want_size=" << want_size << " size=" << size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << "\n");
+
+    return true;
+  }
+
+
+  bool get (Key_type & key, Value_type ** to) {
+    auto hash = calc_hash(key);
+    auto it = storage.find(hash);
+    if (it != storage.end()) {
+      if (!to)
+        return false;
+
+      sorted_keys.erase(it->second.second);
+      sorted_keys.emplace_front(hash);
+
+      *to = &it->second.first;
+      return true;
+    }
+    return false;
+  }
+
+
+  bool remove (Key_type & key) {
+
+    auto hash = calc_hash(key);
+    auto it = storage.find(hash);
+    if (it != storage.end()) {
+      sorted_keys.erase(it->second.second);
+      storage.erase(hash);
+      size -= calc_stored_size( it );
+      LRU_PRINT("erasing " << " size=" << size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << "\n");
+      return true;
+    }
+    return false;
+  }
 
 private:
-  typedef size_t Key_store_type;
-  typedef std::list<Key_store_type>::iterator list_iter;
-  typedef typename std::map<Key_store_type, std::pair<Value_type, list_iter> >::iterator storage_iter;
+  using Key_store_type = size_t;
+  using list_iter = std::list<Key_store_type>::iterator;
+  using storage_iter = typename std::map<Key_store_type, std::pair<Value_type, list_iter> >::iterator;
 
   std::map<Key_store_type, std::pair<Value_type, list_iter> > storage;
   std::list<Key_store_type> sorted_keys;
@@ -48,12 +142,8 @@ private:
 
   //inline Key_store_type calc_hash(const Key_type &key) const {
   inline Key_store_type calc_hash(Key_type &key) const {
-    //return std::hash<Key_type>(key);
-    std::hash<Key_type> fn;
+    hash_func fn;
     return fn(key);
-    
-    //return std::hash<Key_type>(const_cast<Key_type&>(key));
-    //return std::hash<>(key);
   };
 
   inline Key_store_type calc_elem_size(Key_store_type hash) {
@@ -64,90 +154,3 @@ private:
   };
 
 };
-
-
-
-
-template <typename Key_type, typename Value_type>
-lru<Key_type, Value_type>::lru(size_t limit_) :
-  map_node_size(sizeof(void*) * 3),
-  list_node_size(sizeof(void*) * 3),
-  limit(limit_) {
-  size += sizeof(*this);
-}
-
-template <typename Key_type, typename Value_type>
-bool lru<Key_type, Value_type>::insert(Key_type & key, Value_type &value) {
-
-  auto hash = calc_hash(key);
-  auto it = storage.find(hash);
-  size_t current_size = 0;
-  if (it != storage.end()) {
-    current_size = calc_stored_size(it);
-  }
-
-  size_t want_size = calc_size_pair(key, value);
-
-  //need clean cache?
-  if (current_size < want_size && (size - current_size) + want_size > limit) {
-    //clean
-    for (auto sit = sorted_keys.rbegin(); sit != sorted_keys.rend(); ++sit)  {
-      // cur check
-      if (hash == *sit) {
-        // dont! TODO
-        continue;
-      }
-      auto storage_it = storage.find(*sit);
-      size -= calc_stored_size( storage_it );
-      storage.erase( storage_it );
-      sorted_keys.erase(sit.base());
-      if ((size - current_size) + want_size < limit) {
-
-      }
-    }
-  }
-
-  if (current_size) {
-    it = storage.find(hash);
-    sorted_keys.erase(it->second.second);
-    sorted_keys.emplace_front(hash);
-    //storage[hash] = std::make_pair(value, sorted_keys.begin());
-    //del!!
-    storage.erase( it );
-    auto pr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
-    size -= current_size;
-  } else {
-    sorted_keys.emplace_front(hash);
-    auto pr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
-    it = pr.first; //?
-  }
-  //size += calc_size(it->first) + calc_size(it->second) + map_node_size;
-  auto new_size = calc_stored_size(it);
-  size += new_size;
-  return true;
-}
-
-
-
-template <typename Key_type, typename Value_type>
-bool lru<Key_type, Value_type>::get (Key_type & key, Value_type ** to) {
-  auto hash = calc_hash(key);
-  auto it = storage.find(hash);
-  if (it != storage.end()) {
-    if (!to)
-      return false;
-
-    sorted_keys.erase(it->second.second);
-    sorted_keys.emplace_front(hash);
-
-    *to = &it->second.first;
-    return true;
-  }
-  return false;
-}
-
-template <typename Key_type, typename Value_type>
-bool lru<Key_type, Value_type>::remove (Key_type & key) {
-  return storage.erase(calc_hash(key));
-}
-
