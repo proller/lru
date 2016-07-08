@@ -91,10 +91,11 @@ bool lru<Key_type, Value_type>::insert(Key_type & key, Value_type &value) {
   //need clean cache?
   if (current_size < want_size && (size - current_size) + want_size > limit) {
     //clean
-    for (auto sit = sorted_keys.rbegin(); sit != sorted_keys.rend(); sit = sorted_keys.rbegin())  {
+    for (auto sit = sorted_keys.rbegin(); sit != sorted_keys.rend(); ++sit)  {
       // cur check
       if (hash == *sit) {
         // dont! TODO
+        continue;
       }
       auto storage_it = storage.find(*sit);
       size -= calc_stored_size( storage_it );
