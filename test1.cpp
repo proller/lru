@@ -34,27 +34,35 @@ int main () {
   lru<int, int> l_int(20000);
   int i1 = 1, i2 = 2;
   l_int.insert(i1, i2);
-  int * to = nullptr;
-  l_int.get(i1, &to);
+  auto gp = l_int.get(i1);
   l_int.remove(i1);
+
+  // TODO:
+  //l_int.insert(1, 2);
+  //l_int.insert(3, 4);
+
+
 
   for(int i = 10; i <= 20000; ++i) {
     int i3 = i * 3;
     l_int.insert(i, i3);
     int ig = 11;
-    if (l_int.get(ig, &to))
-      std::cout << "get " << ig << " = " << *to << "\n";
+    auto gp =l_int.get(ig);
+    if (gp)
+      std::cout << "get " << ig << " = " << *gp << "\n";
     ig = 15;
-    if (l_int.get(ig, &to))
-      std::cout << "get " << ig << " = " << *to << "\n";
+    gp = l_int.get(ig);
+    if (gp)
+      std::cout << "get " << ig << " = " << *gp << "\n";
   }
 
   // 20 must be cleared because not used
   int ign = 20;
-  if (l_int.get(ign, &to)) {
-    std::cout << "WRONG! get " << ign << " = " << *to << "\n";
+  gp = l_int.get(ign);
+  if (gp) {
+    std::cout << "WRONG! get " << ign << " = " << *gp << "\n";
   } else {
-    std::cout << "OK get " << ign << " = " << to << "\n";
+    std::cout << "OK get " << ign << " = " << gp << "\n";
   }
 
   lru<double> l_double(30000);
@@ -73,8 +81,9 @@ int main () {
   l1.insert(key1, val1);
   std::string * tos = nullptr;
 
-  if (l1.get(key1, &tos)) {
-    std::cout << "OK get replaced " << key1 << " = " << *tos << "\n";
+  auto gps = l1.get(key1);
+  if (gps) {
+    std::cout << "OK get replaced " << key1 << " = " << *gps << "\n";
   }
   val1 = std::string(500, 'c');
 

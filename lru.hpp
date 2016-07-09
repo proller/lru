@@ -2,6 +2,16 @@
 
 lru cache with defined maximum memory usage
 
+constructor:
+lru<key_type=std::string, value_type=std::string> cache(10000) // pass size limit in bytes
+cache.insert(key, value)
+value_type * stored = cache.get(key) : pointer to stored value, nullptr if not found
+bool cache.remove(key) // remove key, return true if successful
+
+for your custom types need specify:
+std::hash<key_type>()()
+namespace lru_calc { template <> size_t real_sizeof<value_type>(const value_type &) {...} } // size calculator
+
 */
 
 #include <string> //only for default type
@@ -16,6 +26,7 @@ lru cache with defined maximum memory usage
 #define LRU_PRINT(a) ;
 #endif
 
+namespace lru_calc {
 template <typename T>
 size_t real_sizeof(const T & key) {
   return sizeof(key);
@@ -25,8 +36,9 @@ template <>
 size_t real_sizeof<std::string>(const std::string & key) {
   return sizeof(key) + key.capacity();
 }
+}
 
-template <class key_type = std::string,  class value_type = std::string,  class hasher = std::hash<key_type> >
+template <class key_type = std::string, class value_type = std::string, class hasher = std::hash<key_type> >
 class lru {
   using Key_store_type = decltype(hasher()(key_type()));
   using list_iter = typename std::list<Key_store_type>::iterator;
@@ -46,7 +58,7 @@ class lru {
   inline size_t calc_size_pair(const key_type & key, const value_type &value) const {
     return 0
            + sizeof(Key_store_type)
-           + real_sizeof<>(value)
+           + lru_calc::real_sizeof<>(value)
            + sizeof(list_iter)
            + map_node_size
            + sizeof(Key_store_type)
@@ -56,7 +68,7 @@ class lru {
   inline size_t calc_stored_size(const storage_iter & it) const {
     return 0
            + sizeof(it->first)  // map key (hash)
-           + real_sizeof<>(it->second.first)  // map value
+           + lru_calc::real_sizeof<>(it->second.first)  // map value
            + sizeof(it->second.second) // map iterator to list
            + map_node_size // map internal
            + sizeof(Key_store_type) // list
@@ -84,7 +96,6 @@ public:
     max_size = limit - size;
     LRU_PRINT("initial size=" << size << "\n");
   }
-
 
   bool insert(key_type & key, value_type &value) {
     size_t want_size = calc_size_pair(key, value);
@@ -136,30 +147,24 @@ public:
       size -= current_size;
     } else {
       sorted_keys.emplace_front(hash);
-      auto pr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
-      it = pr.first;
+      auto empr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
+      it = empr.first;
     }
-    //size += real_sizeof(it->first) + real_sizeof(it->second) + map_node_size;
+    //size += lru_calc::real_sizeof(it->first) + lru_calc::real_sizeof(it->second) + map_node_size;
     auto new_size = calc_stored_size(it);
     size += new_size;
 
     LRU_PRINT("inserted new_size=" << new_size << " want_size=" << want_size
-              /*<< " key.size="<<key.size()
-              << " key.capacity="<<key.capacity()
-              << " value.size="<< value.size()
-              << " value.capacity="<< value.capacity() */
+              /*<< " key.size="<<key.size() << " key.capacity="<<key.capacity() << " value.size="<< value.size() << " value.capacity="<< value.capacity() */
               << " size=" << size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << " hash=" << hash << "\n");
 
     return true;
   }
 
-
-  bool get (key_type & key, value_type ** to) {
+  value_type * get (key_type & key) {
     auto hash = calc_hash(key);
     auto it = storage.find(hash);
     if (it != storage.end()) {
-      if (!to)
-        return false;
 
       sorted_keys.erase(it->second.second);
       sorted_keys.emplace_front(hash);
@@ -167,12 +172,10 @@ public:
 
       LRU_PRINT("get hash=" << hash << "\n");
 
-      *to = &it->second.first;
-      return true;
+      return &it->second.first;
     }
-    return false;
+    return nullptr;
   }
-
 
   bool remove (key_type & key) {
     auto hash = calc_hash(key);
@@ -187,8 +190,5 @@ public:
     LRU_PRINT("NOT erasing " << " size=" << size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << "\n");
     return false;
   }
-
-
-public:
 
 };
