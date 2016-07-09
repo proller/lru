@@ -71,6 +71,11 @@ int main () {
   val1 = "bbbbbbbbbbb";
   val1.shrink_to_fit();
   l1.insert(key1, val1);
+  std::string * tos = nullptr;
+
+  if (l1.get(key1, &tos)) {
+    std::cout << "OK get replaced " << key1 << " = " << *tos << "\n";
+  }
   val1 = std::string(500, 'c');
 
   l1.insert(key1, val1);
@@ -84,7 +89,7 @@ int main () {
 
   //exactly as free space
   lru<> l2(10000);
-  val1 = std::string(10000 - sizeof(l2) - 104, 'c');
+  val1 = std::string(10000 - sizeof(l2) - 104 - 8, 'c');
   l2.insert(key1, val1);
   val1 = std::string(1, 'c');
   val1.shrink_to_fit();
