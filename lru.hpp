@@ -27,15 +27,8 @@ namespace lru_calc { template <> size_t real_sizeof<value_type>(const value_type
 #endif
 
 namespace lru_calc {
-template <typename T>
-size_t real_sizeof(const T & key) {
-  return sizeof(key);
-}
-
-template <>
-size_t real_sizeof<std::string>(const std::string & key) {
-  return sizeof(key) + key.capacity();
-}
+template <typename T> size_t real_sizeof(const T & key) { return sizeof(key); }
+template <> size_t real_sizeof<std::string>(const std::string & key) {  return sizeof(key) + key.capacity(); }
 }
 
 template <class key_type = std::string, class value_type = std::string, class hasher = std::hash<key_type> >
@@ -65,7 +58,7 @@ class lru {
            + sorted_node_size // list internal
            ;
   };
-  inline size_t calc_pair_size(const key_type & key, const value_type &value) const {
+  inline size_t calc_possible_size(const value_type &value) const {
     return 0
            + sizeof(key_store_type)
            + lru_calc::real_sizeof<>(value)
@@ -97,7 +90,7 @@ public:
   }
 
   bool insert(const key_type & key, const value_type &value) {
-    size_t want_size = calc_pair_size(key, value);
+    size_t want_size = calc_possible_size(value);
     if (want_size > max_size) {
       LRU_PRINT("NOT inserted max_size=" << max_size << " want_size=" << want_size << " stored_size=" << stored_size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << "\n");
       return false;
@@ -164,7 +157,7 @@ public:
     return true;
   }
 
-  value_type * get (const key_type & key) {
+  value_type * get(const key_type & key) {
     auto hash = calc_hash(key);
     auto it = storage.find(hash);
     if (it != storage.end()) {
@@ -183,7 +176,7 @@ public:
     return nullptr;
   }
 
-  bool remove (const key_type & key) {
+  bool remove(const key_type & key) {
     auto hash = calc_hash(key);
     auto it = storage.find(hash);
     if (it != storage.end()) {

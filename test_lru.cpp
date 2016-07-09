@@ -1,15 +1,14 @@
 /*
 
-astyle --style=attach -s2 --keep-one-line-blocks --keep-one-line-statements --pad-oper lru.hpp test.cpp
-g++ -std=c++11 -lstdc++ test.cpp
-g++ -std=c++11 -lstdc++ -DLRU_DEBUG=1 test.cpp
+astyle --style=attach -s2 --keep-one-line-blocks --keep-one-line-statements --pad-oper *.hpp *.cpp
+c++ -std=c++11 test_lru.cpp
+c++ -std=c++11 -DLRU_DEBUG=1 test_lru.cpp
 */
 
 #define LRU_DEBUG 1
 
 #include <iostream>
 #include <string>
-//#include <thread>
 
 #include "lru.hpp"
 
@@ -22,8 +21,6 @@ int main () {
   l_int.remove(1);
   l_int.insert(1, 2);
   l_int.insert(3, 4);
-
-
 
   for(int i = 10; i <= 5000; ++i) {
     int i3 = i * 3;
