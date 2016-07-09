@@ -12,7 +12,7 @@ int main () {
   valb = std::string(1000000000, 'b');
   for(int i = 0; i <= 1000; ++i) {
     std::string keyb(std::to_string(i));
-    auto r = lb1.insert(keyb, valb);
+    auto r = lb1.insert(std::to_string(i), valb);
     std::cout << keyb << " r=" << r << " \n";
     if (!r)
       break;

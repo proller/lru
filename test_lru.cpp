@@ -5,7 +5,7 @@ g++ -std=c++11 -lstdc++ test.cpp
 g++ -std=c++11 -lstdc++ -DLRU_DEBUG=1 test.cpp
 */
 
-//#define LRU_DEBUG 1
+#define LRU_DEBUG 1
 
 #include <iostream>
 #include <string>
@@ -17,19 +17,17 @@ int main () {
 
   lru<int, int> l_int(2000);
   int i1 = 1, i2 = 2;
-  l_int.insert(i1, i2);
-  auto gp = l_int.get(i1);
-  l_int.remove(i1);
-
-  // TODO:
-  //l_int.insert(1, 2);
-  //l_int.insert(3, 4);
+  l_int.insert(1, 2);
+  auto gp = l_int.get(1);
+  l_int.remove(1);
+  l_int.insert(1, 2);
+  l_int.insert(3, 4);
 
 
 
   for(int i = 10; i <= 5000; ++i) {
     int i3 = i * 3;
-    l_int.insert(i, i3);
+    l_int.insert(i, i * 3);
     int ig = 11;
     auto gp = l_int.get(ig);
     if (gp)

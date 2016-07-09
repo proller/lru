@@ -14,8 +14,8 @@ int main () {
   std::cout << "filling with little datas. you can run ` watch 'ps auxw | grep test2' ` \n";
   for(int i = 0; i <= 100000000; ++i) {
     std::string keyb(std::to_string(i));
-    std::string valb(1, 'b');
-    lb1.insert(keyb, valb);
+    std::string(1, 'b');
+    lb1.insert(std::to_string(i), std::string(1, 'b'));
   }
   // mem here: 997504 987208
 

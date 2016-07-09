@@ -30,7 +30,5 @@ size_t real_sizeof<vt>(const vt & key) {
 
 int main () {
   lru<kt, vt> lc(100000);
-  kt k ;
-  vt v {std::string(1000, 'a'), std::string(10000, 'b')};
-  lc.insert(k, v);
+  lc.insert(kt(), {std::string(1000, 'a'), std::string(10000, 'b')});
 }
