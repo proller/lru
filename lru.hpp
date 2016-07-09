@@ -2,15 +2,15 @@
 
 lru cache with defined maximum memory usage
 
-constructor:
+usage:
 lru<key_type=std::string, value_type=std::string> cache(10000) // pass size limit in bytes
-cache.insert(key, value)
+bool cache.insert(key, value) // return true if successful
 value_type * stored = cache.get(key) : pointer to stored value, nullptr if not found
-bool cache.remove(key) // remove key, return true if successful
+bool cache.remove(key) // return true if successful
 
 for your custom types need specify:
 std::hash<key_type>()()
-namespace lru_calc { template <> size_t real_sizeof<value_type>(const value_type &) {...} } // size calculator
+namespace lru_calc { template <> size_t real_sizeof<value_type>(const value_type &) {...} } // real size calculator
 
 */
 
@@ -136,19 +136,24 @@ public:
 
     }
 
-    // replace if exists
-    if (current_size) {
-      // get new valid iterator
-      if (erased)
-        it = storage.find(hash);
-      sorted_keys.erase(it->second.second);
-      sorted_keys.emplace_front(hash);
-      it->second = std::make_pair(value, sorted_keys.begin());
-      size -= current_size;
-    } else {
-      sorted_keys.emplace_front(hash);
-      auto empr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
-      it = empr.first;
+    try {
+      // replace if exists
+      if (current_size) {
+        // get new valid iterator
+        if (erased)
+          it = storage.find(hash);
+        sorted_keys.erase(it->second.second);
+        sorted_keys.emplace_front(hash);
+        it->second = std::make_pair(value, sorted_keys.begin());
+        size -= current_size;
+      } else {
+        sorted_keys.emplace_front(hash);
+        auto empr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
+        it = empr.first;
+      }
+    } catch (...) {
+      LRU_PRINT("memory out on inserting want_size=" << want_size << "\n");
+      return false;
     }
     //size += lru_calc::real_sizeof(it->first) + lru_calc::real_sizeof(it->second) + map_node_size;
     auto new_size = calc_stored_size(it);
