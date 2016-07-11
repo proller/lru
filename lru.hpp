@@ -3,10 +3,15 @@
 lru cache with defined maximum memory usage
 
 usage:
+
 lru<key_type=std::string, value_type=std::string> cache(10000) // pass size limit in bytes
+
 bool cache.insert(key, value) // return true if successful
-value_type * stored = cache.get(key) : pointer to stored value, nullptr if not found
+
+value_type * stored = cache.get(key) : pointer to stored value, nullptr if not found. dont use pointer after remove()
+
 bool cache.remove(key) // return true if successful
+
 
 for your custom types need specify:
 std::hash<key_type>()()
@@ -48,7 +53,7 @@ class lru {
   const size_t sorted_node_size;
   const size_t max_size;
 
-  inline size_t calc_stored_size(const storage_iter & it) const {
+  inline size_t calc_stored_size(const storage_iter & it) const noexcept {
     return 0
            + sizeof(it->first)  // map key (hash)
            + lru_calc::real_sizeof<>(it->second.first)  // map value
@@ -58,7 +63,7 @@ class lru {
            + sorted_node_size // list internal
            ;
   };
-  inline size_t calc_possible_size(const value_type &value) const {
+  inline size_t calc_possible_size(const value_type &value) const noexcept {
     return 0
            + sizeof(key_store_type)
            + lru_calc::real_sizeof<>(value)
@@ -68,11 +73,11 @@ class lru {
            + sorted_node_size;
   };
 
-  inline key_store_type calc_hash(const key_type &key) const {
+  inline key_store_type calc_hash(const key_type &key) const noexcept {
     return hasher()(key);
   };
 
-  inline key_store_type calc_elem_size(key_store_type hash) {
+  inline key_store_type calc_elem_size(key_store_type hash) noexcept {
     auto it = storage.find(hash);
     if (it == storage.end())
       return 0;
@@ -80,7 +85,7 @@ class lru {
   };
 
 public:
-  lru(size_t limit_) :
+  lru(size_t limit_) noexcept :
     storage_node_size(sizeof(void*) * 4), //bit larger than need (~3.5)
     sorted_node_size(sizeof(void*) * 3),
     limit(limit_),
@@ -89,7 +94,7 @@ public:
     LRU_PRINT("initial stored_size=" << stored_size << "\n");
   }
 
-  bool insert(const key_type & key, const value_type &value) {
+  bool insert(const key_type & key, const value_type &value) noexcept {
     size_t want_size = calc_possible_size(value);
     if (want_size > max_size) {
       LRU_PRINT("NOT inserted max_size=" << max_size << " want_size=" << want_size << " stored_size=" << stored_size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << "\n");
@@ -157,7 +162,7 @@ public:
     return true;
   }
 
-  value_type * get(const key_type & key) {
+  value_type * get(const key_type & key) noexcept {
     auto hash = calc_hash(key);
     auto it = storage.find(hash);
     if (it != storage.end()) {
@@ -176,7 +181,7 @@ public:
     return nullptr;
   }
 
-  bool remove(const key_type & key) {
+  bool remove(const key_type & key) noexcept {
     auto hash = calc_hash(key);
     auto it = storage.find(hash);
     if (it != storage.end()) {

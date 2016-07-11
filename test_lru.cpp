@@ -22,17 +22,17 @@ int main () {
   l_int.insert(1, 2);
   l_int.insert(3, 4);
 
+  int ig = 11;
   for(int i = 10; i <= 5000; ++i) {
     int i3 = i * 3;
     l_int.insert(i, i * 3);
-    int ig = 11;
     auto gp = l_int.get(ig);
     if (gp)
-      std::cout << "get " << ig << " = " << *gp << "\n";
-    ig = 15;
-    gp = l_int.get(ig);
+      std::cout << "get " << ig << " = " << gp << " " << *gp << "\n";
+    int ig2 = 15;
+    gp = l_int.get(ig2);
     if (gp)
-      std::cout << "get " << ig << " = " << *gp << "\n";
+      std::cout << "get " << ig2 << " = " << gp << " " << *gp << "\n";
   }
 
   // 20 must be cleared because not used
