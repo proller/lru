@@ -21,6 +21,7 @@ int main () {
   l_int.remove(1);
   l_int.insert(1, 2);
   l_int.insert(3, 4);
+  auto gp_long = l_int.get(3);
 
   int ig = 11;
   for(int i = 10; i <= 5000; ++i) {
@@ -28,11 +29,11 @@ int main () {
     l_int.insert(i, i * 3);
     auto gp = l_int.get(ig);
     if (gp)
-      std::cout << "get " << ig << " = " << gp << " " << *gp << "\n";
+      std::cout << "get " << ig << " = " << gp.get() << " " << *gp << "\n";
     int ig2 = 15;
     gp = l_int.get(ig2);
     if (gp)
-      std::cout << "get " << ig2 << " = " << gp << " " << *gp << "\n";
+      std::cout << "get " << ig2 << " = " << gp.get() << " " << *gp << "\n";
   }
 
   // 20 must be cleared because not used
@@ -41,8 +42,11 @@ int main () {
   if (gp) {
     std::cout << "WRONG! get " << ign << " = " << *gp << "\n";
   } else {
-    std::cout << "OK get " << ign << " = " << gp << "\n";
+    std::cout << "OK get " << ign << " = " << gp.get() << "\n";
   }
+
+  if (gp_long)
+  std::cout << "safe get still valid: " << *gp_long.get() << "\n";
 
   lru<double> l_double(30000);
 

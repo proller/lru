@@ -8,7 +8,9 @@ lru<key_type=std::string, value_type=std::string> cache(10000) // pass size limi
 
 bool cache.insert(key, value) // return true if successful
 
-value_type * stored = cache.get(key) : pointer to stored value, nullptr if not found. dont use pointer after remove()
+std::unique_ptr<value_type> stored = cache.get(key) : std::unique_ptr to copy of stored value, nullptr if not found.
+
+value_type * stored = cache.get_unsafe(key) : pointer to stored value, nullptr if not found. dont use pointer after remove() or insert()
 
 bool cache.remove(key) // return true if successful
 
@@ -23,6 +25,7 @@ namespace lru_calc { template <> size_t real_sizeof<value_type>(const value_type
 #include <list>
 #include <map>
 #include <functional>
+#include <memory>
 
 #if LRU_DEBUG
 #include <iostream>
@@ -162,7 +165,7 @@ public:
     return true;
   }
 
-  value_type * get(const key_type & key) noexcept {
+  value_type * get_unsafe(const key_type & key) noexcept {
     auto hash = calc_hash(key);
     auto it = storage.find(hash);
     if (it != storage.end()) {
@@ -179,6 +182,11 @@ public:
     }
     LRU_PRINT("get not found hash=" << hash << "\n");
     return nullptr;
+  }
+
+  std::unique_ptr<value_type> get(const key_type & key) noexcept {
+    auto ptr = get_unsafe(key);
+    return std::unique_ptr<value_type>(ptr ? new value_type(*ptr) : nullptr);
   }
 
   bool remove(const key_type & key) noexcept {
