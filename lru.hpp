@@ -104,25 +104,25 @@ public:
       return false;
     }
     auto hash = calc_hash(key);
-    auto it = storage.find(hash);
+    auto storage_it = storage.find(hash);
     size_t current_size = 0;
-    if (it != storage.end()) {
-      current_size = calc_stored_size(it);
+    if (storage_it != storage.end()) {
+      current_size = calc_stored_size(storage_it);
     }
 
     //need clean cache?
     size_t erased = 0;
     if (current_size < want_size && (stored_size - current_size) + want_size > limit) {
       //clean
-      for (auto sit = sorted_keys.rbegin(); sit != sorted_keys.rend(); ++sit)  {
-        if (hash == *sit) {
+      for (auto sorted_it = sorted_keys.rbegin(); sorted_it != sorted_keys.rend(); ++sorted_it)  {
+        if (hash == *sorted_it) {
           continue;
         }
-        auto storage_it = storage.find(*sit);
-        stored_size -= calc_stored_size( storage_it );
-        storage.erase( storage_it );
-        sorted_keys.erase(storage_it->second.second);
-        LRU_PRINT("cleaning hash=" << *sit << " clean=" << calc_stored_size( storage_it ) << " want_size=" << want_size << " stored_size=" << stored_size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << "\n");
+        auto storage_it_erase = storage.find(*sorted_it);
+        stored_size -= calc_stored_size( storage_it_erase );
+        sorted_keys.erase(storage_it_erase->second.second);
+        LRU_PRINT("cleaning hash=" << *sorted_it << " clean=" << calc_stored_size( storage_it_erase ) << " want_size=" << want_size << " stored_size=" << stored_size << " storage=" << storage.size() << " sorted_keys=" << sorted_keys.size() << "\n");
+        storage.erase( storage_it_erase );
         ++erased;
         if ((stored_size - current_size) + want_size < limit) {
           break;
@@ -141,21 +141,21 @@ public:
       if (current_size) {
         // get new valid iterator
         if (erased)
-          it = storage.find(hash);
-        sorted_keys.erase(it->second.second);
+          storage_it = storage.find(hash);
+        sorted_keys.erase(storage_it->second.second);
         sorted_keys.emplace_front(hash);
-        it->second = std::make_pair(value, sorted_keys.begin());
+        storage_it->second = std::make_pair(value, sorted_keys.begin());
         stored_size -= current_size;
       } else {
         sorted_keys.emplace_front(hash);
         auto empr = storage.emplace(hash, std::make_pair(value, sorted_keys.begin()));
-        it = empr.first;
+        storage_it = empr.first;
       }
     } catch (...) {
       LRU_PRINT("memory out? on inserting want_size=" << want_size << "\n");
       return false;
     }
-    auto new_size = calc_stored_size(it);
+    auto new_size = calc_stored_size(storage_it);
     stored_size += new_size;
 
     LRU_PRINT("inserted new_size=" << new_size << " want_size=" << want_size

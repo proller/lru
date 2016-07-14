@@ -7,7 +7,7 @@
 int main () {
 
   lru<> lb1(1000000000000);
-  std::cout << "filling with big datas until exeption or oom \n";
+  std::cout << "filling with big datas until exeption or oom. DISABLE SWAP BEFORE RUN. \n";
   std::string valb;
   valb = std::string(1000000000, 'b');
   for(int i = 0; i <= 1000; ++i) {
